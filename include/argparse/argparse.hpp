@@ -89,7 +89,7 @@ struct HasContainerTraits<
                    decltype(std::declval<T>().size())>> : std::true_type {};
 
 template <typename T>
-inline constexpr bool IsContainer = HasContainerTraits<T>::value;
+inline constexpr bool IsContainer = details::HasContainerTraits<T>::value;
 
 template <typename T, typename = void>
 struct HasStreamableTraits : std::false_type {};
@@ -101,7 +101,7 @@ struct HasStreamableTraits<
     : std::true_type {};
 
 template <typename T>
-inline constexpr bool IsStreamable = HasStreamableTraits<T>::value;
+inline constexpr bool IsStreamable = details::HasStreamableTraits<T>::value;
 
 constexpr std::size_t repr_max_container_size = 5;
 
@@ -110,19 +110,19 @@ template <typename T> std::string repr(T const &val) {
     return val ? "true" : "false";
   } else if constexpr (std::is_convertible_v<T, std::string_view>) {
     return '"' + std::string{std::string_view{val}} + '"';
-  } else if constexpr (IsContainer<T>) {
+  } else if constexpr (details::IsContainer<T>) {
     std::stringstream out;
     out << "{";
     const auto size = val.size();
     if (size > 1) {
-      out << repr(*val.begin());
+      out << details::repr(*val.begin());
       std::for_each(
           std::next(val.begin()),
           std::next(
               val.begin(),
               static_cast<typename T::iterator::difference_type>(
                   std::min<std::size_t>(size, repr_max_container_size) - 1)),
-          [&out](const auto &v) { out << " " << repr(v); });
+          [&out](const auto &v) { out << " " << details::repr(v); });
       if (size <= repr_max_container_size) {
         out << " ";
       } else {
@@ -130,11 +130,11 @@ template <typename T> std::string repr(T const &val) {
       }
     }
     if (size > 0) {
-      out << repr(*std::prev(val.end()));
+      out << details::repr(*std::prev(val.end()));
     }
     out << "}";
     return out.str();
-  } else if constexpr (IsStreamable<T>) {
+  } else if constexpr (details::IsStreamable<T>) {
     std::stringstream out;
     out << val;
     return out.str();
@@ -168,8 +168,8 @@ constexpr int radix_10 = 10;
 constexpr int radix_16 = 16;
 
 template <typename T>
-constexpr bool standard_integer =
-    standard_signed_integer<T> || standard_unsigned_integer<T>;
+constexpr bool standard_integer = details::standard_signed_integer<T> ||
+                                  details::standard_unsigned_integer<T>;
 
 template <class F, class Tuple, class Extra, std::size_t... I>
 constexpr decltype(auto)
@@ -259,14 +259,14 @@ inline auto do_from_chars(std::string_view s) -> T {
 
 template <class T, auto Param = 0> struct parse_number {
   auto operator()(std::string_view s) -> T {
-    return do_from_chars<T, Param>(s);
+    return details::do_from_chars<T, Param>(s);
   }
 };
 
 template <class T> struct parse_number<T, radix_2> {
   auto operator()(std::string_view s) -> T {
     if (auto [ok, rest] = consume_binary_prefix(s); ok) {
-      return do_from_chars<T, radix_2>(rest);
+      return details::do_from_chars<T, radix_2>(rest);
     }
     throw std::invalid_argument{"pattern not found"};
   }
@@ -277,7 +277,7 @@ template <class T> struct parse_number<T, radix_16> {
     if (starts_with("0x"sv, s) || starts_with("0X"sv, s)) {
       if (auto [ok, rest] = consume_hex_prefix(s); ok) {
         try {
-          return do_from_chars<T, radix_16>(rest);
+          return details::do_from_chars<T, radix_16>(rest);
         } catch (const std::invalid_argument &err) {
           throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                       "' as hexadecimal: " + err.what());
@@ -290,7 +290,7 @@ template <class T> struct parse_number<T, radix_16> {
       // Allow passing hex numbers without prefix
       // Shape 'x' already has to be specified
       try {
-        return do_from_chars<T, radix_16>(s);
+        return details::do_from_chars<T, radix_16>(s);
       } catch (const std::invalid_argument &err) {
         throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                     "' as hexadecimal: " + err.what());
@@ -310,7 +310,7 @@ template <class T> struct parse_number<T> {
     auto [ok, rest] = consume_hex_prefix(s);
     if (ok) {
       try {
-        return do_from_chars<T, radix_16>(rest);
+        return details::do_from_chars<T, radix_16>(rest);
       } catch (const std::invalid_argument &err) {
         throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                     "' as hexadecimal: " + err.what());
@@ -323,7 +323,7 @@ template <class T> struct parse_number<T> {
     auto [ok_binary, rest_binary] = consume_binary_prefix(s);
     if (ok_binary) {
       try {
-        return do_from_chars<T, radix_2>(rest_binary);
+        return details::do_from_chars<T, radix_2>(rest_binary);
       } catch (const std::invalid_argument &err) {
         throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                     "' as binary: " + err.what());
@@ -335,7 +335,7 @@ template <class T> struct parse_number<T> {
 
     if (starts_with("0"sv, s)) {
       try {
-        return do_from_chars<T, radix_8>(rest);
+        return details::do_from_chars<T, radix_8>(rest);
       } catch (const std::invalid_argument &err) {
         throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                     "' as octal: " + err.what());
@@ -346,7 +346,7 @@ template <class T> struct parse_number<T> {
     }
 
     try {
-      return do_from_chars<T, radix_10>(rest);
+      return details::do_from_chars<T, radix_10>(rest);
     } catch (const std::invalid_argument &err) {
       throw std::invalid_argument("Failed to parse '" + std::string(s) +
                                   "' as decimal integer: " + err.what());
@@ -368,7 +368,7 @@ inline const auto generic_strtod<long double> = ARGPARSE_CUSTOM_STRTOLD;
 } // namespace
 
 template <class T> inline auto do_strtod(std::string const &s) -> T {
-  if (isspace(static_cast<unsigned char>(s[0])) || s[0] == '+') {
+  if (std::isspace(static_cast<unsigned char>(s[0])) || s[0] == '+') {
     throw std::invalid_argument{"pattern '" + s + "' not found"};
   }
 
@@ -376,7 +376,7 @@ template <class T> inline auto do_strtod(std::string const &s) -> T {
   char *ptr;
 
   errno = 0;
-  auto x = generic_strtod<T>(first, &ptr);
+  auto x = details::generic_strtod<T>(first, &ptr);
   if (errno == 0) {
     if (ptr == last) {
       return x;
@@ -402,7 +402,7 @@ template <class T> struct parse_number<T, chars_format::general> {
     }
 
     try {
-      return do_strtod<T>(s);
+      return details::do_strtod<T>(s);
     } catch (const std::invalid_argument &err) {
       throw std::invalid_argument("Failed to parse '" + s +
                                   "' as number: " + err.what());
@@ -423,7 +423,7 @@ template <class T> struct parse_number<T, chars_format::hex> {
     }
 
     try {
-      return do_strtod<T>(s);
+      return details::do_strtod<T>(s);
     } catch (const std::invalid_argument &err) {
       throw std::invalid_argument("Failed to parse '" + s +
                                   "' as hexadecimal: " + err.what());
@@ -444,7 +444,7 @@ template <class T> struct parse_number<T, chars_format::binary> {
       throw std::invalid_argument{"chars_format::binary parses binfloat"};
     }
 
-    return do_strtod<T>(s);
+    return details::do_strtod<T>(s);
   }
 };
 
@@ -464,7 +464,7 @@ template <class T> struct parse_number<T, chars_format::scientific> {
     }
 
     try {
-      return do_strtod<T>(s);
+      return details::do_strtod<T>(s);
     } catch (const std::invalid_argument &err) {
       throw std::invalid_argument("Failed to parse '" + s +
                                   "' as scientific notation: " + err.what());
@@ -491,7 +491,7 @@ template <class T> struct parse_number<T, chars_format::fixed> {
     }
 
     try {
-      return do_strtod<T>(s);
+      return details::do_strtod<T>(s);
     } catch (const std::invalid_argument &err) {
       throw std::invalid_argument("Failed to parse '" + s +
                                   "' as fixed notation: " + err.what());
@@ -565,7 +565,8 @@ std::string get_most_similar_string(const std::map<std::string, ValueType> &map,
   std::size_t min_distance = (std::numeric_limits<std::size_t>::max)();
 
   for (const auto &entry : map) {
-    std::size_t distance = get_levenshtein_distance(entry.first, input);
+    std::size_t distance =
+        details::get_levenshtein_distance(entry.first, input);
     if (distance < min_distance) {
       min_distance = distance;
       most_similar = entry.first;
@@ -1249,7 +1250,8 @@ public:
       using ValueType = typename T::value_type;
       auto lhs = get<T>();
       return std::equal(std::begin(lhs), std::end(lhs), std::begin(rhs),
-                        std::end(rhs), [](const auto &a, const auto &b) {
+                        std::end(rhs),
+                        [](const std::any &a, const ValueType &b) {
                           return std::any_cast<const ValueType &>(a) == b;
                         });
     }
@@ -2005,7 +2007,7 @@ public:
       }
     }
 
-    for (size_t i_group = 0; i_group < parser.m_group_names.size(); ++i_group) {
+    for (std::size_t i_group = 0; i_group < parser.m_group_names.size(); ++i_group) {
       stream << "\n" << parser.m_group_names[i_group] << " (detailed usage):\n";
       for (const auto &argument : parser.m_optional_arguments) {
         if (argument.m_group_idx == i_group + 1 && !argument.m_is_hidden) {
@@ -2052,7 +2054,7 @@ public:
   }
 
   // Sets the maximum width for a line of the Usage message
-  ArgumentParser &set_usage_max_line_width(size_t w) {
+  ArgumentParser &set_usage_max_line_width(std::size_t w) {
     this->m_usage_max_line_width = w;
     return *this;
   }
@@ -2072,7 +2074,7 @@ public:
     curline += this->m_program_name;
     const bool multiline_usage =
         this->m_usage_max_line_width < (std::numeric_limits<std::size_t>::max)();
-    const size_t indent_size = curline.size();
+    const std::size_t indent_size = curline.size();
 
     const auto deal_with_options_of_group = [&](std::size_t group_idx) {
       bool found_options = false;
