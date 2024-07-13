@@ -61,6 +61,12 @@ import std;
 #include <vector>
 #endif
 
+#ifndef ARGPARSE_EXPORT
+#define ARGPARSE_EXPORT
+#define ARGPARSE_BEGIN_EXPORT
+#define ARGPARSE_END_EXPORT
+#endif
+
 #ifndef ARGPARSE_CUSTOM_STRTOF
 #define ARGPARSE_CUSTOM_STRTOF std::strtof
 #endif
@@ -581,6 +587,7 @@ std::string get_most_similar_string(const std::map<std::string, ValueType> &map,
 }
 
 } // namespace details
+ARGPARSE_BEGIN_EXPORT
 
 enum class nargs_pattern { optional, any, at_least_one };
 
@@ -600,7 +607,9 @@ inline default_arguments operator&(const default_arguments &a,
 
 class ArgumentParser;
 
-class Argument {
+ARGPARSE_END_EXPORT
+
+ARGPARSE_EXPORT class Argument {
   friend class ArgumentParser;
   friend auto operator<<(std::ostream &stream, const ArgumentParser &parser)
       -> std::ostream &;
