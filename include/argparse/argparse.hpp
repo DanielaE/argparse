@@ -30,12 +30,14 @@ SOFTWARE.
 */
 #pragma once
 
-#include <cerrno>
-
-#ifndef ARGPARSE_MODULE_USE_STD_MODULE
+#ifdef ARGPARSE_MODULE_USE_STD_MODULE
+import std;
+#include <cerrno> // due to macro definition of 'errno'
+#else
 #include <algorithm>
 #include <any>
 #include <array>
+#include <cerrno>
 #include <charconv>
 #include <cstdlib>
 #include <functional>
