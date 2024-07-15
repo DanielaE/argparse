@@ -610,6 +610,10 @@ class Argument {
         m_is_required(false), m_is_repeatable(false), m_is_used(false),
         m_is_hidden(false), m_prefix_chars(prefix_chars) {
     ((void)m_names.emplace_back(a[I]), ...);
+    sortNames();
+  }
+
+  void sortNames() {
     std::sort(
         m_names.begin(), m_names.end(), [](const auto &lhs, const auto &rhs) {
           return lhs.size() == rhs.size() ? lhs < rhs : lhs.size() < rhs.size();
