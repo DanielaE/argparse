@@ -6,6 +6,24 @@ else()
   set(ARGPARSE_IS_TOP_LEVEL OFF)
 endif()
 
+if (CMAKE_VERSION VERSION_LESS 3.31)
+  if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+    cmake_policy(VERSION 3.28)
+  elseif(CMAKE_VERSION VERSION_LESS 3.28)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
+    else ()
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+    endif()
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+  else()
+    cmake_policy(VERSION 3.28)
+  endif()
+else()
+  cmake_policy(VERSION 3.31)
+endif()
+
 project(argparse
         VERSION 3.1.0 
         DESCRIPTION "A single header argument parser for C++17"
@@ -16,17 +34,58 @@ project(argparse
 option(ARGPARSE_INSTALL "Include an install target" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_TESTS "Build tests" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_SAMPLES "Build samples" OFF)
+option(ARGPARSE_BUILD_MODULE "Build the module interface" OFF)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-add_library(argparse INTERFACE)
-add_library(argparse::argparse ALIAS argparse)
+if (ARGPARSE_BUILD_MODULE)
+  cmake_minimum_required(VERSION 3.26)
+  if (CMAKE_VERSION VERSION_LESS 3.28)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
+    else ()
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+    endif()
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+  else()
+    cmake_policy(VERSION 3.28)
+  endif()
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
 
-target_compile_features(argparse INTERFACE cxx_std_17)
-target_include_directories(argparse INTERFACE
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+if (ARGPARSE_BUILD_MODULE)
+  add_library(argparse STATIC)
+
+  target_sources(argparse
+    PUBLIC
+      FILE_SET modules TYPE CXX_MODULES
+        BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/module
+        FILES ${CMAKE_CURRENT_LIST_DIR}/module/argparse.ixx
+  )
+  target_compile_definitions(argparse PRIVATE ARGPARSE_AUTOLINK)
+  
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# I do mean C++20
+  target_compile_options(argparse PUBLIC -fsized-deallocation -faligned-allocation)
+elseif (MSVC)
+# I do mean C++20
+  target_compile_options(argparse PUBLIC /utf-8 /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
+endif()
+  target_include_directories(argparse PRIVATE
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+else()
+  add_library(argparse INTERFACE)
+
+  target_compile_features(argparse INTERFACE cxx_std_17)
+  target_include_directories(argparse INTERFACE
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+endif()
+add_library(argparse::argparse ALIAS argparse)
 
 if(ARGPARSE_BUILD_SAMPLES)
   add_subdirectory(samples)
@@ -37,7 +96,12 @@ if(ARGPARSE_BUILD_TESTS)
 endif()
   
 if(ARGPARSE_INSTALL)
-  install(TARGETS argparse EXPORT argparseConfig)
+  if(ARGPARSE_BUILD_MODULE)
+    install(TARGETS argparse EXPORT argparseConfig
+            FILE_SET modules DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/argparse)
+  else()
+    install(TARGETS argparse EXPORT argparseConfig)
+  endif()
   install(EXPORT argparseConfig
           NAMESPACE argparse::
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
