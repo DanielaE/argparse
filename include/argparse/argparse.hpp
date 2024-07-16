@@ -601,18 +601,6 @@ class Argument {
   friend auto operator<<(std::ostream &stream, const ArgumentParser &parser)
       -> std::ostream &;
 
-  template <std::size_t N, std::size_t... I>
-  explicit Argument(std::string_view prefix_chars,
-                    std::array<std::string_view, N> &&a,
-                    std::index_sequence<I...> /*unused*/)
-      : m_accepts_optional_like_value(false),
-        m_is_optional((is_optional(a[I], prefix_chars) || ...)),
-        m_is_required(false), m_is_repeatable(false), m_is_used(false),
-        m_is_hidden(false), m_prefix_chars(prefix_chars) {
-    ((void)m_names.emplace_back(a[I]), ...);
-    sortNames();
-  }
-
   void sortNames() {
     std::sort(
         m_names.begin(), m_names.end(), [](const auto &lhs, const auto &rhs) {
@@ -624,7 +612,15 @@ public:
   template <std::size_t N>
   explicit Argument(std::string_view prefix_chars,
                     std::array<std::string_view, N> &&a)
-      : Argument(prefix_chars, std::move(a), std::make_index_sequence<N>{}) {}
+      : m_accepts_optional_like_value(false), m_is_required(false),
+        m_is_repeatable(false), m_is_used(false), m_is_hidden(false),
+        m_prefix_chars(prefix_chars) {
+    m_is_optional = std::any_of(a.begin(), a.end(), [&](std::string_view s) {
+      return is_optional(s, prefix_chars);
+    });
+    m_names.assign(a.begin(), a.end());
+    sortNames();
+  }
 
   Argument &help(std::string help_text) {
     m_help = std::move(help_text);
