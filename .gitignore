@@ -263,6 +263,7 @@ __pycache__/
 
 # CMake build directory
 build
+bld*
 
 # Cppcheck build directory
 analysis-cppcheck-build-dir
