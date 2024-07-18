@@ -1,5 +1,29 @@
 cmake_minimum_required(VERSION 3.6)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (CMAKE_VERSION VERSION_LESS 3.31)
+  if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+    cmake_policy(VERSION 3.28)
+  elseif(CMAKE_VERSION VERSION_LESS 3.28)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
+    else ()
+      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+    endif()
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+  else()
+    cmake_policy(VERSION 3.28)
+  endif()
+else()
+  cmake_policy(VERSION 3.31)
+endif()
+
 project(argparse_tests)
+
+if (ARGPARSE_USE_STD_MODULE)
+  set(CMAKE_CXX_MODULE_STD 1)
+endif()
 
 if(MSVC)
   # Force to always compile with W4
@@ -50,7 +74,7 @@ if(ARGPARSE_BUILD_MODULE)
     target_compile_options(argparse_test PRIVATE /dxifcInlineFunctions- /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)    
   endif()
 
-  add_library(argparse_module_test OBJECT test-module.cpp test-module-mixed.cpp)
+  add_library(argparse_module_test OBJECT test-module.cpp)
   target_link_libraries(argparse_module_test PUBLIC argparse_test)
 endif()
 
@@ -97,7 +121,6 @@ set_source_files_properties(main.cpp
 ADD_EXECUTABLE(ARGPARSE_TESTS ${ARGPARSE_TEST_SOURCES})
 INCLUDE_DIRECTORIES("../include" ".")
 set_target_properties(ARGPARSE_TESTS PROPERTIES OUTPUT_NAME tests)
-set_property(TARGET ARGPARSE_TESTS PROPERTY CXX_STANDARD 17)
 
 if(ARGPARSE_BUILD_MODULE)
   target_link_libraries(ARGPARSE_TESTS PRIVATE argparse_module_test)

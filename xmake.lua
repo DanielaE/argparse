@@ -49,7 +49,7 @@ if get_config("enable_tests") then
         add_includedirs("test")
 
         add_files("test/main.cpp", { defines = { "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN" } })
-        add_files("test/**.cpp")
+        add_files("test/test_*.cpp")
 
         add_deps("argparse")
     end)
@@ -65,7 +65,7 @@ if get_config("enable_tests") then
             add_includedirs("test")
 
             add_files("test/main.cpp", { defines = { "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN" } })
-            add_files("test/**.cpp")
+            add_files("test/test_*.cpp")
             add_files("test/argparse_details.cppm")
 
             add_deps("argparse")
