@@ -60,15 +60,15 @@ SOFTWARE.
 #endif
 
 #ifndef ARGPARSE_CUSTOM_STRTOF
-#define ARGPARSE_CUSTOM_STRTOF strtof
+#define ARGPARSE_CUSTOM_STRTOF std::strtof
 #endif
 
 #ifndef ARGPARSE_CUSTOM_STRTOD
-#define ARGPARSE_CUSTOM_STRTOD strtod
+#define ARGPARSE_CUSTOM_STRTOD std::strtod
 #endif
 
 #ifndef ARGPARSE_CUSTOM_STRTOLD
-#define ARGPARSE_CUSTOM_STRTOLD strtold
+#define ARGPARSE_CUSTOM_STRTOLD std::strtold
 #endif
 
 namespace argparse {
