@@ -357,15 +357,17 @@ template <class T> struct parse_number<T> {
   }
 };
 
-namespace {
-
-template <class T> inline const auto generic_strtod = nullptr;
-template <> inline const auto generic_strtod<float> = ARGPARSE_CUSTOM_STRTOF;
-template <> inline const auto generic_strtod<double> = ARGPARSE_CUSTOM_STRTOD;
-template <>
-inline const auto generic_strtod<long double> = ARGPARSE_CUSTOM_STRTOLD;
-
-} // namespace
+template <typename T>
+inline auto generic_strtod(const char *first, char **ptr) {
+  if constexpr (std::is_same_v<T, float>)
+    return ARGPARSE_CUSTOM_STRTOF(first, ptr);
+  else if constexpr (std::is_same_v<T, double>)
+    return ARGPARSE_CUSTOM_STRTOD(first, ptr);
+  else if constexpr (std::is_same_v<T, long double>)
+    return ARGPARSE_CUSTOM_STRTOLD(first, ptr);
+  else
+    return;
+};
 
 template <class T> inline auto do_strtod(std::string const &s) -> T {
   if (std::isspace(static_cast<unsigned char>(s[0])) || s[0] == '+') {
