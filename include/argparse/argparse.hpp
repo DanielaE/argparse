@@ -34,6 +34,7 @@ SOFTWARE.
 import std;
 #include <cerrno> // due to macro definition of 'errno'
 #else
+#ifndef ARGPARSE_EXPORT
 #include <algorithm>
 #include <any>
 #include <array>
@@ -59,6 +60,7 @@ import std;
 #include <utility>
 #include <variant>
 #include <vector>
+#endif
 #endif
 
 #ifndef ARGPARSE_EXPORT
