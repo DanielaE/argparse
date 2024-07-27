@@ -5,7 +5,7 @@ import argparse;
 #endif
 #include <doctest.hpp>
 
-#include <cmath>
+#include <sstream>
 #include <string>
 #include <vector>
 

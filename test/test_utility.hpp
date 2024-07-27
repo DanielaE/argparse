@@ -6,7 +6,7 @@
 namespace testutility {
 // Get value at index from std::list
 template <typename T>
-T get_from_list(const std::list<T>& aList, size_t aIndex) {
+T get_from_list(const std::list<T>& aList, std::size_t aIndex) {
   if (aList.size() > aIndex) {
     auto tIterator = aList.begin();
     std::advance(tIterator, aIndex);

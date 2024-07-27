@@ -3,7 +3,7 @@ import argparse;
 #else
 #include <argparse/argparse.hpp>
 #endif
-#include <cmath>
+#include <math.h>
 #include <doctest.hpp>
 
 using doctest::test_suite;
