@@ -72,6 +72,11 @@ export module argparse;
 // detaching *all* names from the module allows for using the module in
 // mixed scenarios where at least one translation unit #includes argparse
 #ifdef ARGPARSE_ATTACH_TO_GLOBAL_MODULE
+#if defined(__clang__) && defined(ARGPARSE_MODULE_USE_STD_MODULE)
+// Clang 18 violates [dcl.link]/4
+import std; // must be imported here, before the linkage specification
+#define import namespace dummy_ns = // make 'import std;' a no-op
+#endif
 extern "C++" {
 #endif
 
