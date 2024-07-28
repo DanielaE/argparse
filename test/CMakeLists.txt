@@ -47,9 +47,18 @@ if (WIN32)
 endif()
 
 if(ARGPARSE_BUILD_MODULE)
-  add_library(argparse_test STATIC)
+  add_library(argparse_test_attached STATIC)
 
-  target_sources(argparse_test
+  target_sources(argparse_test_attached
+    PUBLIC
+      FILE_SET modules TYPE CXX_MODULES
+        BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../module
+        FILES ${CMAKE_CURRENT_LIST_DIR}/../module/argparse.ixx
+  )
+
+  add_library(argparse_test_detached STATIC)
+
+  target_sources(argparse_test_detached
     PUBLIC
       FILE_SET modules TYPE CXX_MODULES
         BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../module
@@ -57,25 +66,40 @@ if(ARGPARSE_BUILD_MODULE)
   )
 
   if (ARGPARSE_USE_STD_MODULE)
-    target_compile_features(argparse_test PUBLIC cxx_std_23)
-    target_compile_definitions(argparse_test PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+    target_compile_features(argparse_test_attached PUBLIC cxx_std_23)
+    target_compile_definitions(argparse_test_attached PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+    
+    target_compile_features(argparse_test_detached PUBLIC cxx_std_23)
+    target_compile_definitions(argparse_test_detached PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
   else()
-    target_compile_features(argparse_test PUBLIC cxx_std_20)
+    target_compile_features(argparse_test_attached PUBLIC cxx_std_20)
+    target_compile_features(argparse_test_detached PUBLIC cxx_std_20)
   endif()
 
-  target_compile_definitions(argparse_test PRIVATE ARGPARSE_ATTACH_TO_GLOBAL_MODULE)
+  target_compile_definitions(argparse_test_detached PRIVATE ARGPARSE_ATTACH_TO_GLOBAL_MODULE)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (ARGPARSE_USE_STD_MODULE)
-      target_compile_options(argparse_test PRIVATE -Wno-deprecated-declarations)
+      target_compile_options(argparse_test_attached PRIVATE -Wno-deprecated-declarations)
+      target_compile_options(argparse_test_detached PRIVATE -Wno-deprecated-declarations)
     endif()
   elseif (MSVC)
     # I do mean C++20
-    target_compile_options(argparse_test PRIVATE /dxifcInlineFunctions- /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)    
+    target_compile_options(argparse_test_attached PRIVATE /dxifcInlineFunctions- /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)    
+    target_compile_options(argparse_test_detached PRIVATE /dxifcInlineFunctions- /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)    
   endif()
 
-  add_library(argparse_module_test OBJECT test-module.cpp)
-  target_link_libraries(argparse_module_test PUBLIC argparse_test)
+  add_library(argparse_module_test_attached OBJECT test-module.cpp)
+  add_library(argparse_module_test_detached OBJECT test-module.cpp test-module-mixed.cpp)
+  if(MSVC)
+    target_compile_options(argparse_module_test_attached PRIVATE -FI "test-workaround.hpp")
+    target_compile_options(argparse_module_test_detached PRIVATE -FI "test-workaround.hpp")
+  else()
+    target_compile_options(argparse_module_test_attached PRIVATE -include "test-workaround.hpp")
+    target_compile_options(argparse_module_test_detached PRIVATE -include "test-workaround.hpp")
+  endif()
+  target_link_libraries(argparse_module_test_attached PUBLIC argparse_test_attached)
+  target_link_libraries(argparse_module_test_detached PUBLIC argparse_test_detached)
 endif()
 
 # ARGPARSE executable
@@ -123,7 +147,7 @@ INCLUDE_DIRECTORIES("../include" ".")
 set_target_properties(ARGPARSE_TESTS PROPERTIES OUTPUT_NAME tests)
 
 if(ARGPARSE_BUILD_MODULE)
-  target_link_libraries(ARGPARSE_TESTS PRIVATE argparse_module_test)
+  target_link_libraries(ARGPARSE_TESTS PRIVATE argparse_module_test_attached argparse_module_test_detached)
 endif()
 
 if (ARGPARSE_USE_STD_MODULE)
