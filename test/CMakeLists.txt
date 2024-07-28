@@ -22,6 +22,38 @@ if (WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
+if(ARGPARSE_BUILD_MODULE)
+  add_library(argparse_test STATIC)
+
+  target_sources(argparse_test
+    PUBLIC
+      FILE_SET modules TYPE CXX_MODULES
+        BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../module
+        FILES ${CMAKE_CURRENT_LIST_DIR}/../module/argparse.ixx
+  )
+
+  if (ARGPARSE_USE_STD_MODULE)
+    target_compile_features(argparse_test PUBLIC cxx_std_23)
+    target_compile_definitions(argparse_test PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+  else()
+    target_compile_features(argparse_test PUBLIC cxx_std_20)
+  endif()
+
+  target_compile_definitions(argparse_test PRIVATE ARGPARSE_ATTACH_TO_GLOBAL_MODULE)
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (ARGPARSE_USE_STD_MODULE)
+      target_compile_options(argparse_test PRIVATE -Wno-deprecated-declarations)
+    endif()
+  elseif (MSVC)
+    # I do mean C++20
+    target_compile_options(argparse_test PRIVATE /dxifcInlineFunctions- /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)    
+  endif()
+
+  add_library(argparse_module_test OBJECT test-module.cpp test-module-mixed.cpp)
+  target_link_libraries(argparse_module_test PUBLIC argparse_test)
+endif()
+
 # ARGPARSE executable
 file(GLOB ARGPARSE_TEST_SOURCES
     main.cpp
@@ -66,6 +98,20 @@ ADD_EXECUTABLE(ARGPARSE_TESTS ${ARGPARSE_TEST_SOURCES})
 INCLUDE_DIRECTORIES("../include" ".")
 set_target_properties(ARGPARSE_TESTS PROPERTIES OUTPUT_NAME tests)
 set_property(TARGET ARGPARSE_TESTS PROPERTY CXX_STANDARD 17)
+
+if(ARGPARSE_BUILD_MODULE)
+  target_link_libraries(ARGPARSE_TESTS PRIVATE argparse_module_test)
+endif()
+
+if (ARGPARSE_USE_STD_MODULE)
+  target_compile_definitions(ARGPARSE_TESTS PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+  target_compile_features(ARGPARSE_TESTS PRIVATE cxx_std_23)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(ARGPARSE_TESTS PRIVATE -Wno-deprecated-declarations)
+  endif()
+else()
+  target_compile_features(ARGPARSE_TESTS PRIVATE cxx_std_17)
+endif()
 
 # Set ${PROJECT_NAME} as the startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ARGPARSE_TESTS)

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12.4)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(NOT DEFINED PROJECT_NAME)
   set(ARGPARSE_IS_TOP_LEVEL ON)
@@ -35,23 +36,18 @@ option(ARGPARSE_INSTALL "Include an install target" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_TESTS "Build tests" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_SAMPLES "Build samples" OFF)
 option(ARGPARSE_BUILD_MODULE "Build the module interface" OFF)
+option(ARGPARSE_USE_STD_MODULE "Use the modularized standard library" OFF)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 if (ARGPARSE_BUILD_MODULE)
-  cmake_minimum_required(VERSION 3.26)
-  if (CMAKE_VERSION VERSION_LESS 3.28)
-    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
-      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
-    else ()
-      set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
-    endif()
-    set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
-  else()
-    cmake_policy(VERSION 3.28)
-  endif()
-  set(CMAKE_CXX_EXTENSIONS OFF)
+  cmake_minimum_required(VERSION 3.26 FATAL_ERROR)
+endif()
+
+if (ARGPARSE_USE_STD_MODULE)
+  cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
+  set(CMAKE_CXX_MODULE_STD 1)
 endif()
 
 if (ARGPARSE_BUILD_MODULE)
@@ -65,13 +61,24 @@ if (ARGPARSE_BUILD_MODULE)
   )
   target_compile_definitions(argparse PRIVATE ARGPARSE_AUTOLINK)
   
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-# I do mean C++20
-#  target_compile_options(argparse PUBLIC -fsized-deallocation -faligned-allocation)
-elseif (MSVC)
-# I do mean C++20
-  target_compile_options(argparse PUBLIC /utf-8 /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
-endif()
+  if (ARGPARSE_USE_STD_MODULE)
+    target_compile_features(argparse
+      PRIVATE   cxx_std_23
+      INTERFACE cxx_std_20)
+    target_compile_definitions(argparse PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+  else()
+    target_compile_features(argparse PUBLIC cxx_std_20)
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (ARGPARSE_USE_STD_MODULE)
+      target_compile_options(argparse PRIVATE -Wno-deprecated-declarations)
+    endif()
+  elseif (MSVC)
+  # I do mean C++20
+    target_compile_options(argparse PRIVATE /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
+  endif()
+
   target_include_directories(argparse PRIVATE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
@@ -79,6 +86,9 @@ endif()
 else()
   add_library(argparse INTERFACE)
 
+  if (ARGPARSE_USE_STD_MODULE)
+    target_compile_definitions(argparse INTERFACE ARGPARSE_MODULE_USE_STD_MODULE)
+  endif()
   target_compile_features(argparse INTERFACE cxx_std_17)
   target_include_directories(argparse INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
