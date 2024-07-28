@@ -36,6 +36,7 @@ option(ARGPARSE_INSTALL "Include an install target" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_TESTS "Build tests" ${ARGPARSE_IS_TOP_LEVEL})
 option(ARGPARSE_BUILD_SAMPLES "Build samples" OFF)
 option(ARGPARSE_BUILD_MODULE "Build the module interface" OFF)
+option(ARGPARSE_MIXED_MODULE "Enable mixing module and header" OFF)
 option(ARGPARSE_USE_STD_MODULE "Use the modularized standard library" OFF)
 
 include(GNUInstallDirs)
@@ -61,6 +62,10 @@ if (ARGPARSE_BUILD_MODULE)
   )
   target_compile_definitions(argparse PRIVATE ARGPARSE_AUTOLINK)
   
+  if(ARGPARSE_MIXED_MODULE)
+    target_compile_definitions(argparse PRIVATE ARGPARSE_ATTACH_TO_GLOBAL_MODULE)
+  endif()
+
   if (ARGPARSE_USE_STD_MODULE)
     target_compile_features(argparse
       PRIVATE   cxx_std_23
