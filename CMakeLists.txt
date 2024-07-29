@@ -51,7 +51,6 @@ endif()
 
 if (ARGPARSE_USE_STD_MODULE)
   cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
-  set(CMAKE_CXX_MODULE_STD 1)
 endif()
 
 if (ARGPARSE_BUILD_MODULE)
@@ -74,6 +73,7 @@ if (ARGPARSE_BUILD_MODULE)
       PRIVATE   cxx_std_23
       INTERFACE cxx_std_20)
     target_compile_definitions(argparse PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
+    set_target_properties(argparse PROPERTIES CXX_MODULE_STD 1)
   else()
     target_compile_features(argparse PUBLIC cxx_std_20)
   endif()

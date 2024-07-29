@@ -21,10 +21,6 @@ endif()
 
 project(argparse_tests)
 
-if (ARGPARSE_USE_STD_MODULE)
-  set(CMAKE_CXX_MODULE_STD 1)
-endif()
-
 if(MSVC)
   # Force to always compile with W4
   if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
@@ -67,9 +63,11 @@ if(ARGPARSE_BUILD_MODULE)
 
   if (ARGPARSE_USE_STD_MODULE)
     target_compile_features(argparse_test_attached PUBLIC cxx_std_23)
+    set_target_properties(argparse_test_attached PROPERTIES CXX_MODULE_STD 1)
     target_compile_definitions(argparse_test_attached PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
     
     target_compile_features(argparse_test_detached PUBLIC cxx_std_23)
+    set_target_properties(argparse_test_detached PROPERTIES CXX_MODULE_STD 1)
     target_compile_definitions(argparse_test_detached PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
   else()
     target_compile_features(argparse_test_attached PUBLIC cxx_std_20)
@@ -153,6 +151,7 @@ endif()
 if (ARGPARSE_USE_STD_MODULE)
   target_compile_definitions(ARGPARSE_TESTS PRIVATE ARGPARSE_MODULE_USE_STD_MODULE)
   target_compile_features(ARGPARSE_TESTS PRIVATE cxx_std_23)
+  set_target_properties(ARGPARSE_TESTS PROPERTIES CXX_MODULE_STD 1)
   if(MSVC)
     target_compile_options(ARGPARSE_TESTS PRIVATE -FI "test-workaround.hpp")
   else()
