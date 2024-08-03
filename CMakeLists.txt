@@ -43,6 +43,9 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 if (ARGPARSE_BUILD_MODULE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    message("\nWarning: the support for modules in gcc is not good enough!\n")
+  endif()
   cmake_minimum_required(VERSION 3.26 FATAL_ERROR)
 endif()
 

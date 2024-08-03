@@ -7,12 +7,21 @@
 //
 // the definitions must *both* be attached to the global module!
 
+#if defined(__clang__)
+// the test fails to compile on Clang 18
+constexpr bool included = false;
+#else
+constexpr bool included = true;
 #include <argparse/argparse.hpp>
+#endif
+
 import argparse;
 
+using doctest::skip;
 using doctest::test_suite;
 
-TEST_CASE("Module is usable in mixed mode" * test_suite("module")) {
+TEST_CASE("Module is usable in mixed mode" * test_suite("module") *
+          skip(not included)) {
   REQUIRE(requires {
     typename argparse::nargs_pattern;
     typename argparse::default_arguments;
@@ -21,6 +30,10 @@ TEST_CASE("Module is usable in mixed mode" * test_suite("module")) {
     typename argparse::Argument;
   });
 }
+
+#if defined(__GNUC__) && !defined(__clang__)
+// the following tests confuse gcc, causing an internal compiler error
+#else
 
 TEST_CASE("Module can build and execute a test program in mixed mode" *
           test_suite("module") * skip(not included)) {
@@ -44,3 +57,5 @@ TEST_CASE("Module can build and execute a test program in mixed mode" *
     ok &= not program.usage().empty();
   REQUIRE(ok);
 }
+
+#endif
